@@ -2,7 +2,6 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import swaggerUi from 'swagger-ui-express';
 import connectDB from './src/config/db.js';
 import swaggerSpec from './src/config/swagger.js';
 
@@ -47,20 +46,32 @@ app.use(cors({
 app.use(express.json()); // Parses incoming requests with JSON payloads
 app.use(express.urlencoded({ extended: true }));
 
-// --- Swagger UI (mounted before DB middleware so docs load without Mongo) ---
-const swaggerServe = Array.isArray(swaggerUi.serve) ? swaggerUi.serve : [swaggerUi.serve];
-app.use(
-  '/api-docs',
-  ...swaggerServe,
-  swaggerUi.setup(swaggerSpec, {
-    explorer: true,
-    swaggerOptions: {
-      persistAuthorization: true,
-      displayRequestDuration: true,
-    },
-    customSiteTitle: 'CRM Backend API Docs',
-  })
-);
+// --- Swagger UI (Using CDN for Vercel Serverless Compatibility) ---
+app.get('/api-docs', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>CRM Backend API Docs</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.css" />
+    </head>
+    <body>
+        <div id="swagger-ui"></div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.js"></script>
+        <script>
+            window.onload = () => {
+                window.ui = SwaggerUIBundle({
+                    url: '/api-docs.json',
+                    dom_id: '#swagger-ui',
+                });
+            };
+        </script>
+    </body>
+    </html>
+  `);
+});
+
 app.get('/api-docs.json', (req, res) => {
   res.json(swaggerSpec);
 });
