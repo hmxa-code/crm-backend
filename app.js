@@ -2,7 +2,9 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import swaggerUi from 'swagger-ui-express';
 import connectDB from './src/config/db.js';
+import swaggerSpec from './src/config/swagger.js';
 
 import authRoutes from './src/main-modules/auth/auth.routes.js';
 import rolesRoutes from './src/main-modules/users/roles.routes.js';
@@ -44,6 +46,24 @@ app.use(cors({
 
 app.use(express.json()); // Parses incoming requests with JSON payloads
 app.use(express.urlencoded({ extended: true }));
+
+// --- Swagger UI (mounted before DB middleware so docs load without Mongo) ---
+const swaggerServe = Array.isArray(swaggerUi.serve) ? swaggerUi.serve : [swaggerUi.serve];
+app.use(
+  '/api-docs',
+  ...swaggerServe,
+  swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+    },
+    customSiteTitle: 'CRM Backend API Docs',
+  })
+);
+app.get('/api-docs.json', (req, res) => {
+  res.json(swaggerSpec);
+});
 
 // --- Base Root & Health Check ---
 app.get('/', (req, res) => {

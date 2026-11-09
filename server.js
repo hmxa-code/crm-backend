@@ -14,6 +14,7 @@ const startServer = async () => {
     // Start Express Application Server
     app.listen(PORT, () => {
       console.log(`[Server]: Server is running high on http://localhost:${PORT}`);
+      console.log(`[Swagger]: API docs at http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {
     console.error('❌ [Database Connection Error]:', error.message);
