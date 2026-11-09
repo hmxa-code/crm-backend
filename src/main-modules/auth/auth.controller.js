@@ -4,7 +4,7 @@ import User from './user.model.js';
 import { AccountTypes } from '../../core/rbac/constants/roles.constants.js';
 import { enrichUserWithRole } from '../users/user.helpers.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
 
 class AuthController {

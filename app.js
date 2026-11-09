@@ -1,5 +1,9 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
+import connectDB from './src/config/db.js';
+
 import authRoutes from './src/main-modules/auth/auth.routes.js';
 import rolesRoutes from './src/main-modules/users/roles.routes.js';
 import usersRoutes from './src/main-modules/users/users.routes.js';
@@ -31,9 +35,48 @@ import TasksRouter from './src/bdtsystem/tasks/index.js';
 const app = express();
 
 // --- Global Middlewares ---
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'x-auth-token']
+}));
+
 app.use(express.json()); // Parses incoming requests with JSON payloads
 app.use(express.urlencoded({ extended: true }));
+
+// --- Base Root & Health Check ---
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'CRM Backend API is running successfully!',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Server is healthy and running',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
+// --- Database Connection Middleware (for Serverless / Vercel & Local) ---
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('[Database Middleware Error]:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Database connection failed. Please ensure MONGODB_URI is configured and MongoDB Atlas allows access from 0.0.0.0/0.',
+      error: error.message
+    });
+  }
+});
 
 // --- API Route Registrations ---
 // Auth routes (public & protected)
@@ -49,8 +92,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/leads', LeadsRouter);
 app.use('/api/contacts', LeadsRouter);
 
-
-// Marketing feauture endpoints --------
+// Marketing feature endpoints --------
 app.use('/api/marketing/campaigns', CampaignsRouter);
 app.use('/api/marketing/drip-campaigns', DripCampaignsRouter);
 app.use('/api/marketing/lead-scoring', LeadScoringRouter);
@@ -68,17 +110,20 @@ app.use('/api/rengrowcure/chronos', ChronosRouter);
 app.use('/api/rengrowcure/kinetics', KineticsRouter);
 // RenGrowCure endpoints end here ---------
 
-// Tasks ----------- (Feauture endpoints)
+// Tasks ----------- (Feature endpoints)
 app.use('/api/tasks', TasksRouter);
 
-// --- Base Health Check ---
-app.get('/health', (req, res) => {
-  res.status(200).json({ success: true, message: 'Server is healthy and running' });
+// --- 404 Handler for Unmatched Routes ---
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.method} ${req.originalUrl} not found`
+  });
 });
 
 // --- Global Error Handling Middleware ---
 app.use((err, req, res, next) => {
-  console.error(' [Global Error Handler]:', err.stack);
+  console.error('[Global Error Handler]:', err.stack);
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal Server Error'

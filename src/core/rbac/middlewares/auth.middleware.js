@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET || 'your-secret-key-change-in-production';
 
 /**
  * Authentication Middleware - Verify JWT Token
